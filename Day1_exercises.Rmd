@@ -1,0 +1,242 @@
+---
+title: "Spatial@iDiv - Day 1"
+author: "Isabel Rosa"
+date: "05/11/2018"
+output: html_document
+---
+
+## Introduction to R (skip if not needed)
+Very brief introduction to the use of R. 
+
+```{r echo=TRUE}
+
+# assigning variables
+x <- 1
+y <- 2
+
+# mathematical operations
+x + y
+x * y
+x - y
+x / y
+
+# logical operations
+x == 10
+x > 2
+x < 2
+x >= 1
+x <= 1
+
+# check object type
+str(x)
+is.matrix(y)
+typeof(x)
+
+# vectors, matrices and data frames
+vXY <- c(x, y)
+new_vec <- c(1,2,3,4,5)
+new_mat <- cbind(new_vec, new_vec)
+
+# generates 2 x 3 numeric matrix 
+y<-matrix(1:6, nrow=2,ncol=3)
+y1<-matrix(1:6, nrow=2,ncol=3, byrow=T) # by rows
+y2<-matrix(1:6, nrow=2,ncol=3, byrow=F) # by columns
+
+# operations with matrices
+colSums(new_mat) #sum all values in each column
+rowSums(new_mat) #sum all values in each row
+t(new_mat) # transpose
+new_mat + 2 # add a constant to each element in the matrix
+new_mat * 0.5 # multiplies a constant to each element in the matrix
+new_mat ^ 2
+
+# adding characters
+z <- c("A", "B", "C", "D", "E")
+new_mat2<-cbind(new_mat,z) # notice what happens
+#new_mat2[,1]+10
+
+# convert matrix to data.frame
+new_mat2<-data.frame(new_mat2)
+is.data.frame(new_mat2)
+new_mat2[,1]+10
+is.numeric(new_mat2$column1)
+
+# flexibility of data.frames
+df1<-data.frame(1:5,2:6,z)
+df1<-data.frame(col1 = 1:5, col2 = 2:6, col3 = z)
+df1$col1+10  # notice that we're not replacing the values in the data.frame
+# modifying column values
+df1$col1<-df1$col1 + 100
+# create new column
+df1$col4<-df1$col1 * 100
+
+# changing column names
+colnames(new_mat)
+colnames(new_mat)<-c("column1", "column2")
+
+# sequences using multiple commands, and a random uniform function
+new_seq <- 1:10
+new_seq2 <- seq(1, 10, 2)
+runif(1)
+new_seq3 <- runif(10)
+
+# subset data using multiple options (first elements is the row number, second element is the column number)
+new_vec[1]
+head(new_vec, n = 1)
+new_vec[length(new_vec)] 
+tail(new_vec, n = 1)
+
+new_mat[1,2]
+head(new_mat,n=1)
+tail(new_mat,n=2)
+
+# select row based on logical operation
+df1[df1$col3=="D",]
+# replace elements based on logical operations
+df1$col1[df1$col3=="D"]<-10
+# find values and return their index (position in object)
+which(df1$col1==10)
+sum(df1$col1==10) # powerful trick TRUE == 1 and FALSE == 0
+
+# this is the very basic to be able to complete the exercise today, and we'll keep learning R tricks as we go along
+
+
+```
+
+
+## Install and/or Load Packages
+There are several packages useful to work with spatial data in R. During this course we'll work mainly with three:
+sp: for working with vector data,
+raster: for working with raster data
+rgdal: for manipulating spatial data, such as changing coordinate systems
+
+```{r echo=TRUE}
+
+# if you need to install first any of the packages, use the following commands
+#install.packages("raster")
+#install.packages("rgdal")
+#install.packages("sp")
+
+# load packages
+library(raster)
+library(rgdal)
+library(sp)
+
+```
+
+## Shapefiles and Raster
+When you work with spatial data, essentially you use two types of data:
+
+1) vector data (i.e., shapefiles): stores the geometric location and attribute information of geographic features. These can be represented by points, lines, or polygons (areas). 
+2) matricial data (i.e., raster): consists of a matrix of cells (or pixels) organized into rows and columns (or a grid) where each cell contains a value representing information. They can be categorical or continuous and have multiple bands. 
+
+For more information see morning lecture:
+https://drive.google.com/drive/folders/1i6PQP-u7ky8mrShmbqykIw9WDw66wS6T
+
+
+## Working with Shapefiles in R
+R is a very powerful to work with shapefiles and the data they contain. Here I will show you some examples, using the same case study that you worked on in the morning using ArcMap. 
+
+Download data from here (if you haven't done it already!): https://drive.google.com/drive/folders/1Zdtz6LAFKY-mkiCiZ7DHTa4rRt7DwBg1
+
+```{r echo=TRUE}
+
+# read in shapefile using rgdal
+deaths <- readOGR(".", "SnowGIS/Cholera_Deaths")
+pumps <- readOGR(".", "Pumps")
+
+# always good to check the contents of your dat
+str(deaths)
+str(pumps)
+
+# visualize one of the variables
+spplot(deaths, z="Shape_Area", main = "Municipality Area (km2)")
+
+# read in raster
+snowMap <-raster("SnowMap.tif")
+
+# visualize one of the rasters
+plot(snowMap, main = "Snow Map")
+
+
+```
+
+## Reference systems
+Coordinate systems are essential to understand when working with spatial data. Some reading material on this can be found here: 
+Essentially, if one wants to know which position of the Earth we refer to, coordinates of geospatial data require a reference system:
+
+1) geodesic/geographic coordinates need an order (lat/long), a unit (e.g., degrees) and a datum (a reference ellipsoid: e.g. WGS84)
+2) cartesian/projected coordinates (e.g. UTM, web Mercator) need also measurement units (e.g., meters), and some way of encoding how they relate to geodesic coordinates, in which datum (this is handled by the GIS system)
+
+
+```{r echo=FALSE}
+# 
+# # check the coordinate system of your shapefile
+# proj4string(sc)
+# proj4string(sc_mun)
+# proj4string(br_sett)
+# # they should all be the same! 
+# 
+# #if missing: assign coordinates
+# #proj4string(s1) <- CRS("+proj=utm +zone=19 +ellps=GRS80 +datum=NAD83")
+# 
+# #if different: transforms coordinates
+# #sc.wgs <- spTransform(sc, CRS("+proj=longlat +datum=WGS84"))
+# 
+# # check the coordinate system of the rasters
+# proj4string(tc)
+# proj4string(tl)
+# proj4string(tg)
+
+```
+
+## Operations with Shapefiles
+
+Clip: in R you can clip using the command "intersect", so that intersect(feature to be clipped, clip feature)
+Select: you can use a boolean selection to subset the features of your shapefile, for instance if you just want to look at settlements with a mininum number of habitants, so that Population > median(Population) 
+There are several options, have a look at this great tutorial: http://www.rspatial.org/spatial/rst/7-vectmanip.html
+
+```{r echo=TRUE}
+# 
+# # Clip the settlement features using the Santa Catarina shapefile
+# sc_sett<-intersect(br_sett, sc)
+# 
+# #sc_sett$med <- sc_sett$population > median(sc_sett$population) # oops! annoyingly our population values have been stored as factors
+# 
+# # convert to original numerical values
+# sc_sett$population<-as.numeric(as.vector(sc_sett$population))
+# # careful! applying as.numeric alone it will not work!!
+# 
+# # visualize results
+# plot(sc_sett, main = "Settlements in Santa Catarina")
+# spplot(sc_sett, z="population", main = "Population per Settlement (people)")
+# 
+# # select settlements larger then the median value
+# sc_sett$med <- sc_sett$population > median(sc_sett$population)
+# sc_largesett <- sc_sett[sc_sett$med == 1, ]
+# 
+# # visualize results
+# par(mfrow=c(1,2))
+# plot(sc_sett, main = "All Settlements")
+# plot(sc_largesett, main = "Largest Settlements")
+
+
+```
+
+
+## Export Shapefiles and Rasters
+It's very easy to export both shapefiles and rasters from R to be visualized in QGIS or ArcMap. 
+
+```{r echo=TRUE}
+
+# Save feature layers (point, polygon, polyline) to shapefile 
+# writeOGR(sc_largesett, dsn=".", layer="SC_largeSett", driver="ESRI Shapefile" )
+
+
+```
+
+
+## Day 1 stuff
+Clips, dissolve, buffer
+
+

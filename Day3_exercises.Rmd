@@ -1,0 +1,90 @@
+---
+title: "Spatial@iDiv - Day 3"
+author: "Isabel Rosa"
+date: "07/11/2018"
+output: html_document
+---
+
+
+## Operations with both Rasters and Shapefiles
+Here I'll show a couple of examples of operation that use feature data as inputs and output rasters:
+Distance to features - calculates the euclidean distance from each cell/pixel to the closest feature (e.g., roads, settlements). Outputs a raster file with these distances.
+Interpolation: a world in itself! Very vey short example provided here (based on a single method, IDW), please see more here: http://www.rspatial.org/analysis/rst/4-interpolation.html
+To better understand interpolation I advise you to read first about spatial autocorrelation: http://www.rspatial.org/analysis/rst/3-spauto.html
+
+To use interpolation metrics you need to load another packaged called gstat
+Inverse distance weighted (IDW) - See more also here: http://desktop.arcgis.com/en/arcmap/10.3/tools/3d-analyst-toolbox/how-idw-works.htm
+
+```{r echo=TRUE}
+
+# create an empty raster (little trick using existing raster)
+dist_sett<-tc*0
+# or you can create an empty one like before
+# dist_sett <- raster(ncol=ncol(tc), nrow=nrow(tc), xmx=extent(tc)@xmax, xmn=extent(tc)@xmin, ymn=extent(tc)@ymin, ymx=extent(tc)@ymax)
+
+# Distance to points
+dist_sett <- distanceFromPoints(dist_sett, sc_sett)
+
+# you can then mask the outside area of Santa Catarina
+dist_sett <- mask(dist_sett, tc)
+
+# plot results
+plot(dist_sett, main = "Distance to settlements (m)")
+
+# load gstat
+library(gstat)
+idw_sett<-tc*0
+
+# compute the model, see reference for more detail
+gs <- gstat(formula=population~1, locations=sc_sett, nmax=5, set=list(idp = 2))
+idw_out <- interpolate(idw_sett, gs)
+
+## [inverse distance weighted interpolation]
+sc_pop <- mask(idw_out, tc)
+plot(sc_pop, main = "Santa Catarina Population")
+
+```
+
+
+## Export Shapefiles and Rasters
+It's very easy to export both shapefiles and rasters from R to be visualized in QGIS or ArcMap. 
+
+```{r echo=TRUE}
+
+# Save feature layers (point, polygon, polyline) to shapefile 
+writeOGR(sc_largesett, dsn=".", layer="SC_largeSett", driver="ESRI Shapefile" )
+
+#Exporting raster
+writeRaster(sc_pop, filename="SC_popmap", format="GTiff" )
+
+```
+
+
+
+
+
+
+Advanced Vector Data Operations I (ArcMap)
+ - find spatial vector data
+ - join tables (countries, statistics, species ranges)
+ - pick elevation data from raster to points
+ - basic statistical analyses (t-test with raster distribution and point data distribution)
+ - spatial autocorrelation + semivariogram
+coffee break
+Same as above but in R
+  - explore analyses a bit further
+ - plot some stuff with ggplot
+
+
+Lunch
+
+
+
+Introduction to interpolation methods (ArcMap and R)
+  - IDW (using data prepared in the morning)
+(This session will only be in R)
+
+ - Krigging (using data prepared in the morning)
+(This session will only be in R)
+
+

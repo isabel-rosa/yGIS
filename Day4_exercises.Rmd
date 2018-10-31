@@ -1,0 +1,54 @@
+---
+title: "Spatial@iDiv - Day 4"
+author: "Isabel Rosa"
+date: "08/11/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+Advanced Raster Data Operations I (ArcMap)
+ - elevation to slope (DEM)
+ - zonal statistics
+ - focal statistics
+ - Carlos model (several layers and stuff)
+coffee break
+Advanced Raster Data Operations II ( in R)
+same as above
+  - explore analyses a bit further
+ - plot some stuff with ggplot
+
+
+
+Introduction to spatial regression (GWR in ArcMap and R)
+Erosion rates (observed)
+Model to predict erosion rates
+
+Statistical analyses on results
+(This session will only be in R)
+
+
