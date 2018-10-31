@@ -1,0 +1,336 @@
+---
+title: "yGIS - Day 1"
+author: "Isabel Rosa"
+date: "05/11/2018"
+output: html_document
+---
+
+## Introduction to R (skip if not needed)
+Very brief introduction to the use of R. 
+
+```{r echo=TRUE}
+
+# assigning variables
+x <- 1
+y <- 2
+
+# mathematical operations
+x + y
+x * y
+x - y
+x / y
+
+# logical operations
+x == 10
+x > 2
+x < 2
+x >= 1
+x <= 1
+
+# check object type
+str(x)
+is.matrix(y)
+typeof(x)
+class(x)
+
+# vectors, matrices and data frames
+vXY <- c(x, y)
+new_vec <- c(1,2,3,4,5)
+new_mat <- cbind(new_vec, new_vec)
+
+# generates 2 x 3 numeric matrix 
+y<-matrix(1:6, nrow=2,ncol=3)
+y1<-matrix(1:6, nrow=2,ncol=3, byrow=T) # by rows
+y2<-matrix(1:6, nrow=2,ncol=3, byrow=F) # by columns
+
+# operations with matrices
+colSums(new_mat) #sum all values in each column
+rowSums(new_mat) #sum all values in each row
+t(new_mat) # transpose
+new_mat + 2 # add a constant to each element in the matrix
+new_mat * 0.5 # multiplies a constant to each element in the matrix
+new_mat ^ 2
+
+# adding characters
+z <- c("A", "B", "C", "D", "E")
+new_mat2<-cbind(new_mat,z) # notice what happens
+#new_mat2[,1]+10
+
+# convert matrix to data.frame
+new_mat2<-data.frame(new_mat2)
+is.data.frame(new_mat2)
+new_mat2[,1]+10
+is.numeric(new_mat2$column1)
+
+# flexibility of data.frames
+df1<-data.frame(1:5,2:6,z)
+df1<-data.frame(col1 = 1:5, col2 = 2:6, col3 = z)
+df1$col1+10  # notice that we're not replacing the values in the data.frame
+# modifying column values
+df1$col1<-df1$col1 + 100
+# create new column
+df1$col4<-df1$col1 * 100
+
+# changing column names
+colnames(new_mat)
+colnames(new_mat)<-c("column1", "column2")
+
+# sequences using multiple commands, and a random uniform function
+new_seq <- 1:10
+new_seq2 <- seq(1, 10, 2)
+runif(1)
+new_seq3 <- runif(10)
+
+# subset data using multiple options (first elements is the row number, second element is the column number)
+new_vec[1]
+head(new_vec, n = 1)
+new_vec[length(new_vec)] 
+tail(new_vec, n = 1)
+
+new_mat[1,2]
+head(new_mat,n=1)
+tail(new_mat,n=2)
+
+# select row based on logical operation
+df1[df1$col3=="D",]
+# replace elements based on logical operations
+df1$col1[df1$col3=="D"]<-10
+# find values and return their index (position in object)
+which(df1$col1==10)
+sum(df1$col1==10) # powerful trick TRUE == 1 and FALSE == 0
+
+# this is the very basic to be able to complete the exercise today, and we'll keep learning R tricks as we go along
+
+```
+
+## Install and/or Load Packages
+There are several packages useful to work with spatial data in R. During this course we'll work mainly with five:
+sp: for working with vector data,
+raster: for working with raster data
+rgdal: for manipulating spatial data, such as changing coordinate systems
+rgeos: for operations with vectorial and raster data
+maptools: provides a set of geospatial data processing and analysis methods
+
+```{r echo=TRUE}
+
+# if you need to install first any of the packages, use the following commands
+#install.packages("raster")
+#install.packages("rgdal")
+#install.packages("sp")
+#install.packages("rgeos")
+#install.packages("maptools")
+
+# load packages
+library(raster)
+library(rgdal)
+library(sp)
+library(rgeos)
+library(maptools)
+
+# auxiliary packages
+library(RColorBrewer) # to help with coloring our maps
+library(ggplot2) # to help producing nice plots
+
+```
+
+## Shapefiles and Rasters
+When you work with spatial data, essentially you use two types of data:
+
+1) vector data (i.e., shapefiles): stores the geometric location and attribute information of geographic features. These can be represented by points, lines, or polygons (areas). 
+2) matricial data (i.e., raster): consists of a matrix of cells (or pixels) organized into rows and columns (or a grid) where each cell contains a value representing information. They can be categorical or continuous and have multiple bands. 
+
+For more information see morning lecture:
+https://drive.google.com/drive/folders/1i6PQP-u7ky8mrShmbqykIw9WDw66wS6T
+
+
+## Reference systems
+Coordinate systems are essential to understand when working with spatial data. Some reading material on this can be found here: 
+Essentially, if one wants to know which position of the Earth we refer to, coordinates of geospatial data require a reference system:
+
+1) geodesic/geographic coordinates need an order (lat/long), a unit (e.g., degrees) and a datum (a reference ellipsoid: e.g. WGS84)
+2) cartesian/projected coordinates (e.g. UTM, web Mercator) need also measurement units (e.g., meters), and some way of encoding how they relate to geodesic coordinates, in which datum (this is handled by the GIS system)
+
+
+```{r echo=FALSE}
+
+### Get long and lat from your text/excel file. Make sure that the order is in lon/lat.
+xy <- read.table("locations.txt",header=T) # use read.csv if your file is save as a .csv
+
+# create a data frame and add some data as well as the coordinates
+mydf <- data.frame(ID = 1:30, Lon = xy$Lon, Lat = xy$Lat, Pop = 10000*runif(30))
+
+# now you can use SpatialPointsDataFrame to add the projection and make it a spatial object
+spdf <- SpatialPointsDataFrame(coords = xy, data = mydf,
+                               proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+
+# now if you plot it, the points are positioned based on their coordinates
+spplot(spdf, z="Pop", main = "Population")
+
+# this was a dummy example, let's continue with the cholera exercise from earlier
+```
+
+## Working with Shapefiles in R
+R is a very powerful to work with shapefiles and the data they contain. Here I will show you some examples, using the same case study that you worked on in the morning using ArcMap. 
+
+Download data from here (if you haven't done it already!): https://drive.google.com/drive/folders/1Zdtz6LAFKY-mkiCiZ7DHTa4rRt7DwBg1
+
+```{r echo=TRUE}
+
+# read in shapefile using rgdal
+deaths <- readOGR(".", "Cholera_Deaths")
+pumps <- readOGR(".", "Pumps")
+
+# always good to check the contents of your dat
+str(deaths)
+str(pumps)
+
+# check the coordinate system of your shapefile
+proj4string(deaths)
+proj4string(pumps)
+
+# they should all be the same!
+
+#if missing: assign coordinates
+#proj4string(deaths) <- CRS("+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +units=m +no_defs")
+
+#if different: transforms coordinates (here, hypotethically transforming to wgs84)
+#deaths.wgs <- spTransform(deaths, CRS("+proj=longlat +datum=WGS84"))
+
+
+# check top rows
+head(deaths)
+
+# total number of deaths
+sum(deaths$Count)
+
+# deaths per pump Id
+df<-data.frame(ID = 1:length(unique(deaths$Id)),value = tapply(deaths$Count, deaths$Id, sum))
+
+# barplot results
+ggplot(data=df, aes(x=ID, y=value)) +
+  geom_bar(stat="identity") +
+  xlab("Pump ID")+
+  ylab("Number of Deaths")
+
+# visualize one of the variables
+spplot(deaths, z="Count", main = "Number of deaths")
+
+# read in raster
+snowMap <-raster("SnowMap.tif")
+NAvalue(snowMap)<-255 # why these values? See here for a simple but clear https://www.quora.com/Why-is-color-measured-on-a-scale-of-0-to-255
+
+proj4string(snowMap) # check coordinates
+
+# visualize Snow's map
+plot(snowMap, main = "Snow Map") # deafult colors
+
+# change map colors
+cuts<-seq(0,255,50) #set breaks
+pal <- colorRampPalette(c("black","white"))
+plot(snowMap, breaks=cuts, col = pal(7)) #plot with defined breaks
+
+# put shapefiles on top of raster
+plot(snowMap, breaks=cuts, col = pal(7)) #plot with defined breaks
+plot(deaths, col="red", add=TRUE)
+plot(pumps, col="blue", add=TRUE)
+
+# export your map
+pdf("snowMap_withDeaths_and_Pumps.pdf")
+plot(snowMap, breaks=cuts, col = pal(7)) #plot with defined breaks
+plot(deaths, pch = 4, col="red", add=TRUE)
+plot(pumps, pch = 25, col="blue", add=TRUE)
+dev.off()
+
+
+```
+
+
+## Operations with Shapefiles
+We will just explore a few options during these days in the course, but there are multiple functions that you can use to work with shapefiles in R. Have a look at this great tutorial: http://www.rspatial.org/spatial/rst/7-vectmanip.html
+
+```{r echo=TRUE}
+
+# let's create the buffers of 200m around the pumps 
+pumps_200m <- gBuffer(pumps, width=200, byid=TRUE) # by id creates a buffer around each pump
+
+# Ensure that the result is interpreted as a SpatialPolygon object
+pumps_200m <- SpatialPolygonsDataFrame(pumps_200m, data=pumps_200m@data )
+
+spplot(pumps_200m) # visualize the result
+
+# export shapefile to your working folder (object to export, folder name, file name)
+#writeOGR(pumps_200m, "pumps_200m", "pumps_200m", driver="ESRI Shapefile" ) 
+
+# you could also dissolve the boundaries of the buffers
+pumps_200m_diss<-gUnaryUnion(pumps_200m,pumps_200m$Id)
+
+# deaths per pump
+res1 <- over(pumps_200m, deaths) # counts points per pump buffer
+res2 <- over(pumps_200m, deaths, fn=sum) # sum the value of the points
+
+# Thiessen polygons
+### Thiessen polygons are generated from a set of sample points such that each polygon defines an area of influence around its sample point, so that any location inside the polygon is closer to that point than any of the other sample points.
+library('dismo')
+points <- data.frame(x = deaths@coords[,1], y = deaths@coords[,2])
+vor <- voronoi(points)
+spplot(vor, "id")
+
+
+# Kernel Density map
+# To get an impression of local spatial variations in intensity, we can plot a kernel estimate of intensity
+library(spatstat)
+
+e <- extent(snowMap) # we need a polygon the size of our study area (get the extent from the raster)
+# coerce to a SpatialPolygons object
+city <- as(e, 'SpatialPolygons') 
+cityA<-as.owin(city) # needed for the spatstat method to run density kernels
+
+p <- ppp(deaths@coords[,1], deaths@coords[,2], window=cityA)
+
+# ignore number of deaths
+ds <- density(p, 5)
+plot(ds, main='death density')
+
+# with number of deaths
+ds <- density(p, 5, weights = deaths$Count)
+plot(ds, main='death density')
+
+
+## Well done you reached the end of the Cholera exercise in R! 
+```
+
+## Subselecting your spatial data
+Here I will demonstrate two ways for selecting parts of your data:
+1) using clip
+2) using select
+
+```{r echo=TRUE}
+
+# Select only Pump with ID number 2
+red_pumps<-pumps[1,] # select first element
+#red_pumps<-pumps[pumps$Id == 2, ]
+red_deaths<-deaths[deaths$Count > median(deaths$Count), ]
+
+# create a buffer around the single pump
+pump_100m <- gBuffer(red_pumps, width=100, byid=TRUE) # by id creates a buffer around each pump
+
+# Ensure that the result is interpreted as a SpatialPolygon object
+pump_100m <- SpatialPolygonsDataFrame(pump_100m, data=pump_100m@data )
+
+# Clip
+pump_deaths<-intersect(red_deaths, pump_100m)
+
+
+# export your map
+pdf("snowMap_withDeaths_and_Pumps_clipped.pdf")
+plot(snowMap, breaks=cuts, col = pal(7)) #plot with defined breaks
+plot(red_deaths, pch = 4, col="red", add=TRUE)
+plot(pump_100m, col="green", add=TRUE)
+plot(pump_deaths, pch = 5, col="brown", add=TRUE)
+plot(red_pumps, pch = 25, col="blue", add=TRUE)
+dev.off()
+
+
+```
+
+## Well done, you survived day 1: 4 more to go! 
